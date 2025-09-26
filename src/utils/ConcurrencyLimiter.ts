@@ -1,16 +1,27 @@
+export interface LimiterConfig {
+ concurrency: number;
+ requestsPerMinute?: number;
+ minIntervalMs?: number;
+}
+
 // 增加一个 Promise 链来串行化速率限制检查
 export class ConcurrencyLimiter {
-  private _queue: (() => void)[] = [];
-  private _running = 0;
-  private _requestTimestamps: number[] = [];
-  // 新增一个 promise 链，确保 _waitForRateLimit 调用是串行的
-  private _rateLimitChain: Promise<any> = Promise.resolve();
+ private _queue: (() => void)[] = [];
+ private _running = 0;
+ private _requestTimestamps: number[] = [];
+ // 新增一个 promise 链，确保 _waitForRateLimit 调用是串行的
+ private _rateLimitChain: Promise<any> = Promise.resolve();
 
-  constructor(
-    private concurrency: number,
-    private requestsPerMinute: number = Infinity,
-    private minIntervalMs: number = 0,
-  ) {}
+ private concurrency: number;
+ private requestsPerMinute: number;
+ private minIntervalMs: number;
+
+ constructor(config: LimiterConfig) {
+   const { concurrency, requestsPerMinute = Infinity, minIntervalMs = 0 } = config;
+   this.concurrency = concurrency;
+   this.requestsPerMinute = requestsPerMinute;
+   this.minIntervalMs = minIntervalMs;
+ }
 
   async run<T>(task: () => Promise<T>): Promise<T> {
     return new Promise((resolve, reject) => {

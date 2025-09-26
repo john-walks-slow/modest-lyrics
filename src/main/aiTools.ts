@@ -1,21 +1,25 @@
 import { z } from 'zod';
-import { createAITool } from './utils/ai-factory';
-import { WEAK_AI_MODEL, STRONG_AI_MODEL } from './config';
-import { AlbumMetadataSchema, ExtractedLyricsSchema, LyricsObject, TranslationSchema, VerificationResultSchema } from './types';
+import { createAITool } from '../utils/AiToolFactory';
+import { LLMType } from '../services/llm';
+import { AlbumMetadataSchema, ExtractedLyricsSchema, SongLyrics, TranslationSchema, VerificationResultSchema } from '../constants/types';
+/**
+ * 
+需要提取的信息如下：
+1.  **专辑标题 (albumTitle)**：必选，专辑的完整名称（仅源语言／原始名称，请勿包含译名、注音）。
+2.  **艺术家 (artist)**：必选，表演该专辑的个人或团体名称（仅源语言／原始名称，请勿包含译名、注音）。
+4.  **主要语言地区 (localeCode)**：必选，专辑所属的主要语言地区，允许启发式推测。(输出 ISO Locale Code，如zh-TW)
+3.  **发行日期 (releaseDate)**：可选，专辑首次发行的日期。（YYYY[-MM][-DD]）
+5.  **曲目列表 (tracklist)**：歌曲名（仅源语言／原始名称，请勿包含译名、注音）和可选的时长 (MM:SS)。
+
+ */
 
 export const AITools = {
   albumMetadataExtractor: createAITool({
     description: '从网页内容提取专辑元数据',
-    model: WEAK_AI_MODEL,
+    modelType: LLMType.Strong,
     dataSchema: AlbumMetadataSchema,
     createPrompt: (pageContent: string) => `
 从以下网页内容中提取专辑的元数据。
-需要提取的信息如下：
-1.  **专辑标题 (albumTitle)**：必选，专辑的完整名称。
-2.  **艺术家 (artist)**：必选，表演该专辑的个人或团体。
-3.  **发行日期 (releaseDate)**：可选，专辑首次发行的日期。
-4.  **曲目列表 (tracklist)**：歌曲名 (title) 和可选的时长 (duration)。
-
 请确保提取的信息干净、准确，并去除任何无关的序号、标签或文本。
 只要必选信息能够成功获取，就视作 success。
 
@@ -25,11 +29,11 @@ ${pageContent}`,
 
   lyricsExtractor: createAITool({
     description: '从网页内容提取歌词',
-    model: WEAK_AI_MODEL,
+    modelType: LLMType.Weak,
     dataSchema: ExtractedLyricsSchema,
     createPrompt: (pageContent: string) => `
 从以下网页内容中提取出完整歌词文本。
-- 去除所有非歌词内容，例如： "[Chorus]"、"[Verse]" 标签、任何注解和评论。
+- 去除所有非歌词内容，例如： "[Chorus]"、"[Verse]" 标签、任何注解和评论、任何注音和罗马音。
 - 不要包含标题和元数据，仅包含歌词正文。
 - 每句歌词之间用一个\`\\n\`换行符隔开，每段歌词之间用两个\`\\n\`换行符隔开。
 - 输出格式为**纯文本**，**请勿**输出 markdown。
@@ -40,9 +44,9 @@ ${pageContent}`,
 
   lyricsVerifier: createAITool({
     description: '交叉验证并整合多个版本的歌词',
-    model: STRONG_AI_MODEL,
+    modelType: LLMType.Strong,
     dataSchema: VerificationResultSchema,
-    createPrompt: (rawObjects: LyricsObject[]) => `
+    createPrompt: (rawObjects: SongLyrics[]) => `
 请仔细比对以下多个版本的歌词，它们来自不同的来源。
 你的任务是整合出一个最准确、完整的最终版本，并在评校意见中说明来源之间的显著差异。
 
@@ -60,12 +64,13 @@ ${rawObjects.map((obj, i) => `--- 版本 ${i} (${(obj.sources[0])}) ---\n${obj.l
 
   lyricsTranslator: createAITool({
     description: '翻译歌词并生成脚注',
-    model: STRONG_AI_MODEL,
+    modelType: LLMType.Strong,
     dataSchema: TranslationSchema,
-    createPrompt: (lyrics: LyricsObject) => `
+    createPrompt: (lyrics: SongLyrics) => `
 ## **角色设定：**
 
 你是一位专业歌词译者，精通各国语言。你的目标是提供一个既忠实于原文，又在中文语境下自然流畅的歌词译本。
+
 
 ## **翻译核心原则：**
 
@@ -75,9 +80,10 @@ ${rawObjects.map((obj, i) => `--- 版本 ${i} (${(obj.sources[0])}) ---\n${obj.l
 - 风格与情感契合： 译文的整体风格（如诗意、口语化、严肃、诙谐、悲伤、欢快等）、情感基调和语调应与原歌词一致。
 - 原文不可改动： 严禁对提供的**原文歌词**进行任何形式的修改、增删或润色。
 
-## **特殊处理与脚注要求：**
 
-**核心原则：** 脚注的目的是对由于**文化、语言差异**难以完全翻译的部分提供额外说明，而**不是**说明歌曲主旨、内涵。
+## **脚注要求：**
+
+**原则：** 脚注的目的是对由于**文化、语言差异**难以完全翻译的部分提供说明性的注释。
 
 对于以下情况，使用脚注加以解释：
 - 难以直译的俚语、习语、流行语、网络梗、俗语或行话： 解释其字面义和引申义。
@@ -85,17 +91,24 @@ ${rawObjects.map((obj, i) => `--- 版本 ${i} (${(obj.sources[0])}) ---\n${obj.l
 - 文字游戏、双关语或谐音梗： 解释原文的精妙之处，指出中文翻译在传达这部分时可能存在的难度或取舍。
 - 较难确定的具有多重含义的词语或短语： 解释其可能的其他含义，并简要说明在此歌词语境下选择特定翻译的原因。
 
-**禁止** 对**并不局限于特定文化的**象征隐喻做脚注，应该留待读者自行理解。
+**禁止** 在脚注中解释歌曲主旨、内涵。
+**禁止** 对不局限于特定文化的象征隐喻做脚注，应该留待读者自行理解。
 
-## 你的工作流程：
+
+## **你的工作流程：**
 
 - 理解分析： 整体阅读并深入理解整首歌词的上下文、主题、情感和风格，进行全面分析。
 - 逐段/逐句翻译： 严格遵循上述"翻译核心原则"，对歌词进行逐段或逐句的翻译。
 - 识别并撰写脚注： 在翻译过程中，主动识别需要脚注说明的部分。准确、简洁地撰写脚注内容。
-- 校对与润色： 完成翻译后，对照原文，通读译文，确保其自然流畅、忠实原意、风格契合，进行最终的校对和润色。
+- 校对与润色： 完成翻译后，对照原文，通读译文，确保其自然流畅、忠实原意、风格契合，进行最终的校对、纠错和润色。
 
-## 输出范例：
-**注意：** 脚注必须包含在 footnotes 字段中。请勿在 translatedLyrics 中添加脚注标记。
+
+## **输出格式要求：**
+－ 译文最终会用于渲染双语对照，因此必须确保 translatedLyrics 与原文的行数、换行位置完全一致。
+－ 脚注必须添加在 footnotes 字段中。**禁止** 在 translatedLyrics 中添加脚注标记。
+
+
+## **输出范例：**
 \`\`\`json
 {
   "translatedTitle": "茶苯海明",
@@ -121,10 +134,21 @@ ${rawObjects.map((obj, i) => `--- 版本 ${i} (${(obj.sources[0])}) ---\n${obj.l
 }
 \`\`\`
 
---- 下面是歌词原文 ---
+
+--- 以下是歌词原文 ---
 \`\`\`json
-${JSON.stringify({ title: lyrics.metadata.title, artist: lyrics.metadata.artist, lyrics: lyrics.lyrics }, undefined, 2)}
+${JSON.stringify({ title: lyrics.metadata.title, lyrics: lyrics.lyrics }, undefined, 2)}
 \`\`\`
 `,
   }),
 };
+
+/**
+ * 曲名：${lyrics.metadata.title}
+${lyrics.lyrics}
+ */
+/**
+ * \`\`\`json
+${JSON.stringify({ title: lyrics.metadata.title, artist: lyrics.metadata.artist, lyrics: lyrics.lyrics }, undefined, 2)}
+\`\`\`
+ */

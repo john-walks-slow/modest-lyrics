@@ -1,21 +1,19 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { LyricsObject, FinalAlbum } from './types';
-import { TEMP_JSON_DIR, FINAL_OUTPUT_DIR } from './config';
-import { sanitizeName } from './utils/file-utils';
+import { SongLyrics, AlbumLyrics } from '../constants/types';
+import { TEMP_JSON_DIR, FINAL_OUTPUT_DIR } from '../config';
+import { sanitizeName } from '../utils/FileUtils';
 
-async function saveIntermediateObjects(objects: LyricsObject[]): Promise<void> {
+async function saveIntermediateObjects(objects: SongLyrics[]): Promise<void> {
   await fs.mkdir(TEMP_JSON_DIR, { recursive: true });
   for (const object of objects) {
-    const sanitizedTitle = sanitizeName(object.metadata.title);
-    const sanitizedArtist = sanitizeName(object.metadata.artist);
-    const filePath = path.join(TEMP_JSON_DIR, `${sanitizedTitle}_${object.status}_${object.id}.json`);
+    const filePath = path.join(TEMP_JSON_DIR, `${sanitizeName(object.id)}_${object.status}.json`);
     await fs.writeFile(filePath, JSON.stringify(object, null, 2));
     console.log(`✅ 已保存中间文件: ${path.basename(filePath)}`);
   }
 }
 
-async function saveFinalAlbumResults(finalAlbum: FinalAlbum): Promise<void> {
+async function saveFinalAlbumResults(finalAlbum: AlbumLyrics): Promise<void> {
   // 净化用于路径的专辑和艺术家名称
   const sanitizedAlbumTitle = sanitizeName(finalAlbum.metadata.albumTitle);
   const sanitizedArtist = sanitizeName(finalAlbum.metadata.artist);

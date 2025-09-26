@@ -1,9 +1,10 @@
 import { generateObject, LanguageModel } from 'ai';
 import { z, ZodTypeAny } from 'zod';
+import { LLMType, getAiModel } from '../services/llm';
 
 interface AIToolConfig<TInput, TOutputSchema extends z.ZodType> {
   description: string;
-  model: LanguageModel;
+  modelType: LLMType; // 指定模型类型
   dataSchema: TOutputSchema;
   createPrompt: (input: TInput) => string;
 }
@@ -22,7 +23,7 @@ export function createAITool<TInput, TOutputSchema extends z.ZodType>(
     data: z.infer<TOutputSchema> | null;
   };
   return {
-    model: config.model,
+    modelType: config.modelType,
     async execute(input: TInput): Promise<z.infer<TOutputSchema>> {
       console.log(`🤖 AI Tool executing: "${config.description}"...`);
       const fullPrompt = config.createPrompt(input);
@@ -33,9 +34,11 @@ export function createAITool<TInput, TOutputSchema extends z.ZodType>(
       // - 成功: 'success' 设为 true, 在 'data' 字段中提供结果。
       // - 失败: 'success' 设为 false, 在 'reasoning' 字段中简要说明原因。`;
 
+      const currentService = getAiModel(config.modelType);
+
       try {
-        const result = await generateObject({
-          model: config.model, schema: responseSchema, prompt: fullPrompt
+        const result = await currentService.generateObject({
+          schema: responseSchema, prompt: fullPrompt
         });
 
         const aiResponse = result.object as AIResponseType;
