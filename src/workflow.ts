@@ -9,6 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Document, SearchResultWeb } from '@mendable/firecrawl-js';
 import { saveIntermediateObjects } from './io';
 import { FinalAlbum } from './types';
+import { SingleBar } from 'cli-progress';
 import { saveFinalAlbumResults } from './io';
 
 const firecrawlLimiter = limiterRegistry.getLimiter('firecrawl');
@@ -22,17 +23,20 @@ async function getContentFromSearch(query: string): Promise<SearchContent> {
       try {
         page = await browser.newPage();
         const searchQuery = query.includes('site:') ? query : query + ' lyrics';
-        const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(searchQuery)}`;
-        await page.goto(searchUrl, { waitUntil: 'networkidle' });
-        await page.waitForSelector('div.g', { timeout: 10000 });
-        const firstLink = await page.$('div.g a[href]');
-        if (!firstLink) {
-          throw new Error('未找到搜索结果链接');
-        }
-        await firstLink.click();
-        await page.waitForLoadState('networkidle');
+        const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(searchQuery)}`;
+        await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
+        const firstLocator = page.getByTestId('result-title-a').first();
+        await firstLocator.waitFor({ state: 'visible', timeout: 20000 });
+        await firstLocator.click();
+        await page.waitForLoadState('domcontentloaded');
         const content = await page.evaluate(() => {
-          const main = document.querySelector('article, main, .post-content, #main-content, .entry-content') || document.body;
+          // 排除更多无关元素
+          const excludeSelectors = ['nav', 'aside', 'footer', 'header', 'script', 'style', '.ad', '[class*="ad"]', '[id*="ad"]'];
+          excludeSelectors.forEach(sel => {
+            const elements = document.querySelectorAll(sel);
+            elements.forEach(el => el.remove());
+          });
+          const main = document.querySelector('article, main, .post-content, #main-content, .entry-content, .content') || document.body;
           let text = ((main as HTMLElement).innerText || main.textContent || '').trim();
           // 简单清理为markdown-like: 保留段落换行
           text = text.replace(/\s+/g, ' ').replace(/([.!?])\s*([A-Z])/g, '$1\n\n$2');
@@ -174,11 +178,34 @@ export async function mainWorkflow(query: string, sourceSites: string[]) {
   try {
     const albumMetadata: AlbumMetadata = await getAlbumMetadata(query);
 
+    const total = albumMetadata.tracklist.length;
+    if (total === 0) {
+      console.log("专辑无曲目。");
+      return;
+    }
+
+    const bar = new SingleBar({
+      format: '歌曲进度 [{bar}] {percentage}% | {value}/{total} | ETA: {eta}s',
+      hideCursor: true
+    });
+    bar.start(total);
+
     const songProcessingPromises = albumMetadata.tracklist.map((trackItem: TrackItem) => {
       const songMetadata: SongMetadata = { title: trackItem.title, artist: albumMetadata.artist };
-      return processSongPipeline(songMetadata, sourceSites);
+      return processSongPipeline(songMetadata, sourceSites)
+        .then((result) => {
+          bar.increment();
+          return result;
+        })
+        .catch((error) => {
+          console.error(`❌ 处理歌曲 "${songMetadata.title}" 失败: ${error.message}`);
+          bar.increment();
+          return null;
+        });
     });
     const results: ProcessingResult[] = await Promise.all(songProcessingPromises);
+    bar.stop();
+
     const finalTranslatedSongs = results.filter((song) => song !== null);
 
     if (finalTranslatedSongs.length > 0) {

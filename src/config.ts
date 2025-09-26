@@ -14,11 +14,16 @@ export interface LimiterConfig {
   minIntervalMs?: number;
 }
 
-export const limiterConfigs: { [key: string]: LimiterConfig } = {
+export const limiterConfigs: { [key: string]: LimiterConfig; } = {
   firecrawl: {
     concurrency: 5,
     requestsPerMinute: 5,
     minIntervalMs: 20000,
+  },
+  playwright: {
+    concurrency: 3,
+    requestsPerMinute: Infinity,
+    minIntervalMs: 0,
   },
   ai: {
     concurrency: 5,
@@ -63,8 +68,8 @@ export const USE_LOCAL_SCRAPER = process.env.USE_LOCAL_SCRAPER === 'true' || fal
 export async function createBrowser() {
   return await chromium.launch({
     proxy: {
-      server: 'http://localhost:7890'
+      server: 'http://localhost:7890',
     },
-    headless: true,
+    headless: false,
   });
 }
