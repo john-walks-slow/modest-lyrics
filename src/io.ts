@@ -39,13 +39,13 @@ async function saveFinalAlbumResults(finalAlbum: FinalAlbum): Promise<void> {
     // 交替输出歌词行
     for (let i = 0; i < originalLines.length; i++) {
       if (originalLines[i].trim()) {
-        content += `${originalLines[i].replace(/\n/g, '  \n')}\n`;
+        content += `${originalLines[i].replace(/\n/g, '  \n')}\n\n`;
       } else {
-        content += '\n';
+        content += '<br>\n\n';
         continue;
       }
       if (translatedLines[i] && translatedLines[i].trim()) {
-        content += `${translatedLines[i].replace(/\n/g, '  \n')}\n`;
+        content += `${translatedLines[i].replace(/\n/g, '  \n')}\n\n`;
       }
     }
 

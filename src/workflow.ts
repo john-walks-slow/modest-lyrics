@@ -87,7 +87,8 @@ async function fetchAllRawLyricsSources(songMetadata: SongMetadata, sourceSites:
   const { title, artist } = songMetadata;
   const fetchPromises = sourceSites.map(async (site) => {
     const { content: rawLyrics, url } = await getContentFromSearch(`${title} ${artist} lyrics site:${site}`);
-    const { lyrics } = await withLimitAndRetry(() => AITools.lyricsExtractor.execute(rawLyrics), AITools.lyricsExtractor.model);
+    const { lyrics: extractedLyrics } = await withLimitAndRetry(() => AITools.lyricsExtractor.execute(rawLyrics), AITools.lyricsExtractor.model);
+    const lyrics = extractedLyrics.replace(/\\n/g, '\n');
     return {
       id: uuidv4(), metadata: songMetadata, lyrics,
       sources: [url], status: 'raw' as const,
@@ -123,7 +124,10 @@ async function verifyLyricsFromSources(rawObjects: LyricsObject[]): Promise<Veri
     };
   }
   console.log(`   -> ${rawObjects.length} 个来源，开始交叉验证...`);
-  const verificationResult = await withLimitAndRetry(() => AITools.lyricsVerifier.execute(rawObjects), AITools.lyricsVerifier.model);
+  let verificationResult = await withLimitAndRetry(() => AITools.lyricsVerifier.execute(rawObjects), AITools.lyricsVerifier.model);
+  if (verificationResult.verifiedLyrics) {
+    verificationResult.verifiedLyrics = verificationResult.verifiedLyrics.replace(/\\n/g, '\n');
+  }
   return verificationResult;
 }
 
