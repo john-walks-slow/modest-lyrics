@@ -1,0 +1,7 @@
+/dist
+/.vscode
+/node_modules
+/output
+/temp-json
+/.env
+/package-lock.json
