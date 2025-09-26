@@ -214,10 +214,15 @@ Oh yeah, oh yeah
 
 哦，是啊，哦，是啊
 
+<br>
 
-[^1] 直译为“长途醉酒”。这里的“长途”通常指长途电话，暗示通过电话进行的远距离沟通。整句描述了一种在远距离交流中或因远距离交流而产生的醉酒状态，可能指说话者或听话者处于醉酒状态。
+[^1] Long Distance Drunk: 直译为“长途醉酒”。这里的“长途”通常指长途电话，暗示通过电话进行的远距离沟通。整句描述了一种在远距离交流中或因远距离交流而产生的醉酒状态，可能指说话者或听话者处于醉酒状态。
 
+<br>
 
 资料来源：
+
 - https://genius.com/Modest-mouse-long-distance-drunk-lyrics
+
 - https://songmeanings.com/songs/view/32948/
+

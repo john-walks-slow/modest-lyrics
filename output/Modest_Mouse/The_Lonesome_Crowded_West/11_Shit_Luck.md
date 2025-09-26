@@ -38,8 +38,11 @@ And my heart is slowly drying up
 
 而我的心正在慢慢枯萎
 
-
+<br>
 
 资料来源：
+
 - https://genius.com/Modest-mouse-shit-luck-lyrics
+
 - https://songmeanings.com/songs/view/32952/
+

@@ -51,18 +51,18 @@ async function saveFinalAlbumResults(finalAlbum: FinalAlbum): Promise<void> {
 
     // 脚注
     if (song.translation.footnotes?.length) {
-      content += '\n';
+      content += '<br>\n\n';
       song.translation.footnotes.forEach((footnote, i) => {
         content = content.replace(footnote.originalText, footnote.originalText + `[^${i + 1}]`);
-        content += `[^${i + 1}] ${footnote.note}\n`;
+        content += `[^${i + 1}] ${footnote.originalText}: ${footnote.note}\n\n`;
       });
     }
 
     // 资料来源
     if (song.sources && song.sources.length > 0) {
-      content += '\n\n资料来源：\n';
+      content += '<br>\n\n资料来源：\n\n';
       song.sources.forEach(source => {
-        content += `- ${source}\n`;
+        content += `- ${source}\n\n`;
       });
     }
 

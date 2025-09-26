@@ -128,10 +128,15 @@ You'll come down, come down
 
 你会坠落，坠落
 
+<br>
 
-[^1] 这是一个比喻。小猫通常数量众多、可爱但也可能带来负担。这里可能比喻观点太多，不值钱，或者易于抛弃，因此我可以轻易地把它们送给别人，显示出对自身观点的不重视或随意。
+[^1] Opinions were like kittens, I was giving them away: 这是一个比喻。小猫通常数量众多、可爱但也可能带来负担。这里可能比喻观点太多，不值钱，或者易于抛弃，因此我可以轻易地把它们送给别人，显示出对自身观点的不重视或随意。
 
+<br>
 
 资料来源：
+
 - https://genius.com/Modest-mouse-out-of-gas-lyrics
+
 - https://songmeanings.com/songs/view/15929/
+
