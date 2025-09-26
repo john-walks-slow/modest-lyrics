@@ -1,7 +1,7 @@
 /dist
 /.vscode
 /node_modules
-/output
+# /output
 /temp-json
 /.env
 /package-lock.json
