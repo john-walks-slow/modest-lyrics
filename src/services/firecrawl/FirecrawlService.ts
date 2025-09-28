@@ -1,5 +1,6 @@
 import FirecrawlApp, { SearchRequest } from '@mendable/firecrawl-js';
 import { ConcurrencyLimiter, LimiterConfig } from '../../utils/ConcurrencyLimiter';
+import { retry } from '../../utils/retry';
 
 export class FirecrawlService {
   private app: FirecrawlApp;
@@ -11,6 +12,6 @@ export class FirecrawlService {
   }
 
   async search(query: string, options: Omit<SearchRequest, "query"> | undefined) {
-    return this.limiter.run(() => this.app.search(query, options));
+    return this.limiter.run(() => retry(() => this.app.search(query, options)));
   }
 }

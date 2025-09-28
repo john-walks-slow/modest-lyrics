@@ -1,4 +1,5 @@
-import { USE_LOCAL_SCRAPER } from '../config';
+import { TEMP_JSON_DIR, USE_LOCAL_SCRAPER } from '../config';
+import { logCrawl } from '../utils/logger';
 import { AITools } from './aiTools';
 import { AlbumMetadata, SongLyrics, ScrapeResult, SongMetadata, TrackItem, VerificationResult, createCrossVerifiedLyrics } from '../constants/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -45,6 +46,7 @@ async function getContentFromSearch(query: string, limit: number = 1, localeCode
         if (!content) {
           throw new Error('页面内容提取失败');
         }
+        logCrawl({ query: query, localeCode: kl }, [{ content, url }]);
         return [{ content, url }];
       } finally {
         if (page) await page.close();
@@ -91,13 +93,28 @@ async function getContentFromSearch(query: string, limit: number = 1, localeCode
     if (results.length === 0) {
       throw new Error(`Web 结果不符合预期，没有有效内容。`);
     }
+    logCrawl({
+      query: query,
+      options: {
+        limit,
+        ignoreInvalidURLs: true,
+        sources: ['web'],
+        location,
+        scrapeOptions: {
+          formats: ['markdown'],
+          onlyMainContent: true,
+          excludeTags: ['i', 'img', 'header', 'footer']
+        }
+      },
+      localeCode
+    }, results);
     return results;
   }
 }
 
 async function getAlbumMetadata(query: string): Promise<AlbumMetadata> {
-  const [{ content }] = await getContentFromSearch(`tracklist wiki ${query}`, 1);
-  const metadata = await AITools.albumMetadataExtractor.execute(content);
+  const [scrapeResult] = await getContentFromSearch(`tracklist wiki ${query}`, 1);
+  const metadata = await AITools.albumMetadataExtractor.execute(scrapeResult);
   if (!metadata.tracklist || metadata.tracklist.length === 0) throw new Error("提取到的曲目列表为空。");
   console.log(`🎵 元数据获取成功: ${metadata.albumTitle}。`);
   metadata.localeCode = normalizeLocaleCode(metadata.localeCode);
@@ -114,17 +131,17 @@ async function fetchAllRawLyricsSources(songMetadata: SongMetadata, sourceSites?
 
   if (sourceSites && sourceSites.length > 0) {
     fetchPromises = sourceSites.map(async (site) => {
-      const [{ content: rawLyrics, url }] = await getContentFromSearch(`${title} ${artist} ${lyricsTerm} site:${site}`, 1, localeCode);
-      const { lyrics: extractedLyrics } = await AITools.lyricsExtractor.execute(rawLyrics);
+      const [scrapeResult] = await getContentFromSearch(`${title} ${artist} ${lyricsTerm} site:${site}`, 1, localeCode);
+      const { lyrics: extractedLyrics } = await AITools.lyricsExtractor.execute(scrapeResult);
       const lyrics = extractedLyrics.replace(/\\n/g, '\n');
-      return new SongLyrics({ title, artist, localeCode }, lyrics, [url]);
+      return new SongLyrics({ title, artist, localeCode }, lyrics, [scrapeResult.url]);
     });
   } else {
     // 当未提供 sourceSites 时，进行通用搜索
-    const [{ content: rawLyrics, url }] = await getContentFromSearch(`${title} ${artist} ${lyricsTerm} lang:${localeCode}`, 1, localeCode);
-    const { lyrics: extractedLyrics } = await AITools.lyricsExtractor.execute(rawLyrics);
+    const [scrapeResult] = await getContentFromSearch(`${title} ${artist} ${lyricsTerm} lang:${localeCode}`, 1, localeCode);
+    const { lyrics: extractedLyrics } = await AITools.lyricsExtractor.execute(scrapeResult);
     const lyrics = extractedLyrics.replace(/\\n/g, '\n');
-    const singleResult = new SongLyrics({ title, artist, localeCode }, lyrics, [url]);
+    const singleResult = new SongLyrics({ title, artist, localeCode }, lyrics, [scrapeResult.url]);
     fetchPromises = [Promise.resolve(singleResult)];
   }
 
@@ -167,7 +184,7 @@ async function verifyLyricsFromSources(rawLyricsArray: SongLyrics[]): Promise<Ve
 /**
  * 单首歌曲处理管道：抓取 -> 验证 -> 翻译
  */
-async function processSongPipeline(songMetadata: SongMetadata, sourceSites?: string[]): Promise<SongLyrics | null> {
+async function processSongPipeline(songMetadata: SongMetadata, sourceSites?: string[]): Promise<SongLyrics> {
   const { title: songTitle, artist } = songMetadata;
   console.log(`\n--- 开始处理歌曲: "${songTitle}" ---`);
   try {
@@ -188,7 +205,7 @@ async function processSongPipeline(songMetadata: SongMetadata, sourceSites?: str
     return verifiedLyrics;
   } catch (error) {
     console.error(`❌ 处理 "${songTitle}" 的流程失败: ${(error as Error).message}`);
-    return null;
+    return new SongLyrics(songMetadata, null, [], 'failed', undefined, undefined, (error as Error).message);
   }
 }
 
@@ -221,17 +238,12 @@ export async function mainWorkflow(query: string, sourceSites?: string[]) {
         .then((result) => {
           bar.increment();
           return result;
-        })
-        .catch((error) => {
-          console.error(`❌ 处理歌曲 "${songMetadata.title}" 失败: ${error.message}`);
-          bar.increment();
-          return null;
         });
     });
     const results = await Promise.all(songProcessingPromises);
     bar.stop();
 
-    const finalTranslatedSongs = results.filter((song) => song !== null);
+    const finalTranslatedSongs = results;
 
     if (finalTranslatedSongs.length > 0) {
       const finalAlbum: AlbumLyrics = { metadata: albumMetadata, songs: finalTranslatedSongs };

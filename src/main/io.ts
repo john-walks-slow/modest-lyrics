@@ -29,10 +29,15 @@ async function saveFinalAlbumResults(finalAlbum: AlbumLyrics): Promise<void> {
   await fs.mkdir(albumDir, { recursive: true });
 
   for (const [index, song] of finalAlbum.songs.entries()) {
-    if (!song.lyrics || !song.translation) continue;
-    const originalLines = song.lyrics.split('\n');
-    const translatedLines = song.translation.translatedLyrics.split('\n');
-    let content = `# ${song.metadata.title} ${song.translation.translatedTitle}\n\n`;
+    let content: string;
+    if (song.status === 'failed') {
+      content = `# ${song.metadata.title}\n\n**Failed to process lyrics:** ${song.verificationComment || 'Unknown error'}\n\n`;
+    } else if (!song.lyrics || !song.translation) {
+      continue;
+    } else {
+      const originalLines = song.lyrics.split('\n');
+      const translatedLines = song.translation.translatedLyrics.split('\n');
+      content = `# ${song.metadata.title} ${song.translation.translatedTitle}\n\n`;
 
     // 交替输出歌词行
     for (let i = 0; i < originalLines.length; i++) {
@@ -75,5 +80,5 @@ async function saveFinalAlbumResults(finalAlbum: AlbumLyrics): Promise<void> {
   }
   console.log(`\n📂 双语文件已生成至目录: ${albumDir}`);
 }
-
-export { saveIntermediateObjects, saveFinalAlbumResults };
+}
+export { saveIntermediateObjects, saveFinalAlbumResults }

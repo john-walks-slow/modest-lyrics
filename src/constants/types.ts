@@ -51,17 +51,19 @@ export class SongLyrics {
   public metadata: SongMetadata;
   public lyrics: string | null;
   public sources: string[];
-  public status: 'raw' | 'verified' | 'translated';
+  public status: 'raw' | 'verified' | 'translated' | 'failed';
   public verificationComment?: string;
+  public error?: string;
   public translation?: Translation;
 
   constructor(
     metadata: SongMetadata,
     lyrics: string | null = null,
     sources: string[] = [],
-    status: 'raw' | 'verified' | 'translated' = 'raw',
+    status: 'raw' | 'verified' | 'translated' | 'failed' = 'raw',
     verificationComment?: string,
-    translation?: Translation
+    translation?: Translation,
+    error?: string
   ) {
     this.id = SongLyrics.generateId(metadata);
     this.metadata = metadata;
@@ -70,6 +72,7 @@ export class SongLyrics {
     this.status = status;
     this.verificationComment = verificationComment;
     this.translation = translation;
+    this.error = error;
   }
 
   static generateId(metadata: SongMetadata): string {

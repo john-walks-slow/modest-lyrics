@@ -1,0 +1,23 @@
+use retry in service
+fallback mode: instead of get all source, only use other source when the previous one fail
+you can use fallback mode with limit and no defined source (walk through searh result) 
+unify the interface of firecrawl and local scrape
+when extracting content, include source url(which might contain some heuristic info that is useful)。 so extract should be scraperesult->extractresult instead of content->extractresult
+
+when some request fail, should still preserve original index in track listing
+
+even if failed,should still has Songlyric object with failed state...
+
+new feature:`
+- input one execution result json, retry failed ones
+
+new feature:
+- translation version management. retranslate with different prompt. keep all versions
+
+future
+web ui?=
+electron or other web based desktop ui?
+
+# Future plan
+
+- Create 

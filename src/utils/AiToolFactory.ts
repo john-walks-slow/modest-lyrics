@@ -1,6 +1,7 @@
 import { generateObject, LanguageModel } from 'ai';
 import { z, ZodTypeAny } from 'zod';
 import { LLMType, getAiModel } from '../services/llm';
+import { logAITool } from './logger';
 
 interface AIToolConfig<TInput, TOutputSchema extends z.ZodType> {
   description: string;
@@ -40,6 +41,8 @@ export function createAITool<TInput, TOutputSchema extends z.ZodType>(
         const result = await currentService.generateObject({
           schema: responseSchema, prompt: fullPrompt
         });
+
+        logAITool(fullPrompt, result.object);
 
         const aiResponse = result.object as AIResponseType;
         if (!aiResponse.success || aiResponse.data === null) {

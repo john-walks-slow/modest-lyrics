@@ -18,28 +18,29 @@ export const AITools = {
     description: '从网页内容提取专辑元数据',
     modelType: LLMType.Strong,
     dataSchema: AlbumMetadataSchema,
-    createPrompt: (pageContent: string) => `
-从以下网页内容中提取专辑的元数据。
+    createPrompt: (scrapeResult: { content: string; url: string; }) => `
+从以下网页内容中提取专辑的元数据。源URL: ${scrapeResult.url} (可用于启发式判断上下文)。
 请确保提取的信息干净、准确，并去除任何无关的序号、标签或文本。
 只要必选信息能够成功获取，就视作 success。
 
 --- 下面是网页内容 ---
-${pageContent}`,
+${scrapeResult.content}`,
   }),
 
   lyricsExtractor: createAITool({
     description: '从网页内容提取歌词',
     modelType: LLMType.Weak,
     dataSchema: ExtractedLyricsSchema,
-    createPrompt: (pageContent: string) => `
-从以下网页内容中提取出完整歌词文本。
+    createPrompt: (scrapeResult: { content: string; url: string; }) => `
+从以下网页内容中提取出完整歌词文本
 - 去除所有非歌词内容，例如： "[Chorus]"、"[Verse]" 标签、任何注解和评论、任何注音和罗马音。
 - 不要包含标题和元数据，仅包含歌词正文。
 - 每句歌词之间用一个\`\\n\`换行符隔开，每段歌词之间用两个\`\\n\`换行符隔开。
 - 输出格式为**纯文本**，**请勿**输出 markdown。
 
 --- 下面是网页内容 ---
-${pageContent}`,
+源URL: ${scrapeResult.url} 
+${scrapeResult.content}`,
   }),
 
   lyricsVerifier: createAITool({
@@ -108,6 +109,27 @@ ${rawObjects.map((obj, i) => `--- 版本 ${i} (${(obj.sources[0])}) ---\n${obj.l
 － 脚注必须添加在 footnotes 字段中。**禁止** 在 translatedLyrics 中添加脚注标记。
 
 
+--- 以下是歌词原文 ---
+\`\`\`json
+${JSON.stringify({ title: lyrics.metadata.title, lyrics: lyrics.lyrics }, undefined, 2)}
+\`\`\`
+`,
+  }),
+};
+
+/**
+ * 曲名：${lyrics.metadata.title}
+${lyrics.lyrics}
+ */
+/**
+ * \`\`\`json
+${JSON.stringify({ title: lyrics.metadata.title, artist: lyrics.metadata.artist, lyrics: lyrics.lyrics }, undefined, 2)}
+\`\`\`
+ */
+
+/**
+ * 
+
 ## **输出范例：**
 \`\`\`json
 {
@@ -132,23 +154,5 @@ ${rawObjects.map((obj, i) => `--- 版本 ${i} (${(obj.sources[0])}) ---\n${obj.l
     }
   ]
 }
-\`\`\`
-
-
---- 以下是歌词原文 ---
-\`\`\`json
-${JSON.stringify({ title: lyrics.metadata.title, lyrics: lyrics.lyrics }, undefined, 2)}
-\`\`\`
-`,
-  }),
-};
-
-/**
- * 曲名：${lyrics.metadata.title}
-${lyrics.lyrics}
- */
-/**
- * \`\`\`json
-${JSON.stringify({ title: lyrics.metadata.title, artist: lyrics.metadata.artist, lyrics: lyrics.lyrics }, undefined, 2)}
 \`\`\`
  */
