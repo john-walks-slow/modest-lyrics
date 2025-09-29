@@ -12,7 +12,7 @@ export const openRouterLimiterConfig: LimiterConfig = {
 export const geminiLimiterConfig: LimiterConfig = {
   concurrency: 3,
   requestsPerMinute: 5,
-  minIntervalMs: 5000,
+  minIntervalMs: 10000,
 };
 
 export const LLM_CONFIG_MAP: Record<LLMType, LLMConfig> = {

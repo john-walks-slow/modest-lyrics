@@ -22,7 +22,7 @@ async function getContentFromSearch(query: string, limit: number = 1, localeCode
       try {
         page = await browser.newPage();
         let searchQuery = query;
-        const kl = localeCode ? localeCode.toLowerCase().replace('-', '_') : 'en_us';
+        const kl = localeCode ? localeCode.toLowerCase().replace('-', '_') : undefined;
         const searchUrl = `https://duckduckgo.com/?q=${encodeURIComponent(searchQuery)}&kl=${kl}`;
         await page.goto(searchUrl, { waitUntil: 'domcontentloaded' });
         const firstLocator = page.getByTestId('result-title-a').first();
@@ -53,9 +53,9 @@ async function getContentFromSearch(query: string, limit: number = 1, localeCode
       }
     });
   } else {
+    let location = localeCode ? getLocationCodeFromLocaleCode(localeCode) : undefined;
     const searchResult = await (async () => {
       let searchQuery = query;
-      let location = localeCode ? getLocationCodeFromLocaleCode(localeCode) : undefined;
       let scrapeLocation = localeCode ? {
         country: getLocationCodeFromLocaleCode(localeCode),
         languages: [getLanguageCodeFromLocaleCode(localeCode)]
@@ -69,7 +69,7 @@ async function getContentFromSearch(query: string, limit: number = 1, localeCode
         limit,
         ignoreInvalidURLs: true,
         sources: ['web'],
-        location,
+        location: location || undefined,
         scrapeOptions: {
           formats: ['markdown'],
           // blockAds: false,
@@ -113,11 +113,13 @@ async function getContentFromSearch(query: string, limit: number = 1, localeCode
 }
 
 async function getAlbumMetadata(query: string): Promise<AlbumMetadata> {
-  const [scrapeResult] = await getContentFromSearch(`tracklist wiki ${query}`, 1);
+  const [scrapeResult] = await getContentFromSearch(`tracklist ${query}`, 1);
   const metadata = await AITools.albumMetadataExtractor.execute(scrapeResult);
   if (!metadata.tracklist || metadata.tracklist.length === 0) throw new Error("提取到的曲目列表为空。");
   console.log(`🎵 元数据获取成功: ${metadata.albumTitle}。`);
-  metadata.localeCode = normalizeLocaleCode(metadata.localeCode);
+  if (metadata.localeCode) {
+    metadata.localeCode = normalizeLocaleCode(metadata.localeCode) ?? undefined;
+  }
   return metadata;
 }
 
@@ -138,7 +140,8 @@ async function fetchAllRawLyricsSources(songMetadata: SongMetadata, sourceSites?
     });
   } else {
     // 当未提供 sourceSites 时，进行通用搜索
-    const [scrapeResult] = await getContentFromSearch(`${title} ${artist} ${lyricsTerm} lang:${localeCode}`, 1, localeCode);
+    // const [scrapeResult] = await getContentFromSearch(`${title} ${artist} ${lyricsTerm} lang:${localeCode}`, 1, localeCode);
+    const [scrapeResult] = await getContentFromSearch(`${title} ${artist} ${lyricsTerm}`, 1, localeCode);
     const { lyrics: extractedLyrics } = await AITools.lyricsExtractor.execute(scrapeResult);
     const lyrics = extractedLyrics.replace(/\\n/g, '\n');
     const singleResult = new SongLyrics({ title, artist, localeCode }, lyrics, [scrapeResult.url]);

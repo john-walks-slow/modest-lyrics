@@ -1,7 +1,9 @@
 /dist
 /.vscode
 /node_modules
-# /output
+/output/**
+!/output/Modest_Mouse
 /temp-json
 /.env
 /package-lock.json
+/.history/

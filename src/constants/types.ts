@@ -19,7 +19,7 @@ export const AlbumMetadataSchema = z.object({
   albumTitle: z.string().describe('专辑标题（源语言／原始名称，请勿包含译名、注音、罗马音）'),
   artist: z.string().describe('艺术家（源语言／原始名称，请勿包含译名、注音、罗马音）'),
   releaseDate: z.string().optional().describe('发行日期（YYYY[-MM][-DD]）'),
-  localeCode: z.string().describe('专辑所属的主要语言地区，允许启发式推测 (ISO Locale Code，如zh-TW)'),
+  localeCode: z.string().optional().describe('专辑所属的主要语言地区，允许启发式推测 (ISO Locale Code，如zh-TW)'),
   tracklist: z.array(TrackItemSchema).describe('曲目列表，包含歌曲名和可选的时长'),
 });
 export type AlbumMetadata = z.infer<typeof AlbumMetadataSchema>;

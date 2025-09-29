@@ -13,6 +13,6 @@ export class LLMService {
   }
 
   async generateObject({ schema, prompt }: { schema: z.ZodType, prompt: string; }) {
-    return this.limiter.run(() => retry(() => generateObject({ model: this.model, schema, prompt })));
+    return this.limiter.run(() => retry(() => generateObject({ model: this.model, schema, prompt, maxRetries: 1 })));
   }
 }

@@ -17,9 +17,9 @@ export interface RetryOptions {
 export async function retry<T>(fn: () => Promise<T>, options?: RetryOptions): Promise<T> {
   const {
     retries = 3,
-    delay = 1000,
+    delay = 20000,
     factor = 2,
-    maxDelay = 30000,
+    maxDelay = 600000,
     shouldRetry = (error: any) => true, // 默认重试所有错误
   } = options || {};
 

@@ -6,7 +6,6 @@
     "@ai-sdk/google": "^2.0.16",
     "@mendable/firecrawl-js": "^4.3.5",
     "@openrouter/ai-sdk-provider": "^1.2.0",
-    "@types/node": "^24.5.2",
     "@types/uuid": "^10.0.0",
     "ai": "^5.0.53",
     "dotenv": "^17.2.2",
@@ -22,6 +21,7 @@
   "devDependencies": {
     "@types/cli-progress": "^3.11.6",
     "@types/jest": "^30.0.0",
+    "@types/node": "^24.5.2",
     "cli-progress": "^3.12.0",
     "jest": "^30.1.3",
     "ts-jest": "^29.4.4"

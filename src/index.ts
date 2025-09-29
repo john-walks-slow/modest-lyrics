@@ -1,15 +1,17 @@
 import { mainWorkflow } from './main/workflows';
 
+const TEST_QUERY = "";
+const TEST_SOURCES: string[] = [];
+
 async function main() {
-  const query = process.argv[2] || "PinocchioP love";
+  const query = process.argv[2] || TEST_QUERY;
   if (!query) {
     console.error('请提供查询参数，如: node src/index.js "This Is a Long Drive Modest Mouse" [sourceSites]');
     console.error('sourceSites 可选，逗号分隔站点列表，如: genius.com,songmeanings.com 或留空使用默认');
     process.exit(1);
   }
 
-  // let sourceSites: string[] = ["genius.com", "songmeanings.com"];
-  let sourceSites: string[] = [];
+  let sourceSites: string[] = TEST_SOURCES;
   const sitesArg = process.argv[3];
   if (sitesArg !== undefined) {
     if (sitesArg.trim() === '') {
